@@ -1,0 +1,14 @@
+invertirColores: 10.5111 ms
+invertirColoresOpenMP: 9.9611 ms
+binarizarImagen: 15.8389 ms
+binarizarImagenOpenMP: 10.7236 ms
+invertirColores: 13.6456 ms
+invertirColoresOpenMP: 15.1721 ms
+invertirColores: 21.2647 ms
+invertirColoresOpenMP: 16.6838 ms
+binarizarImagen: 19.0485 ms
+binarizarImagenOpenMP: 15.377 ms
+espejoImagen: 17.2337 ms
+espejoImagenOpenMP: 18.5481 ms
+invertirColores: 17.1257 ms
+invertirColoresOpenMP: 17.5865 ms
