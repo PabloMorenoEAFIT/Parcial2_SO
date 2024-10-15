@@ -331,17 +331,35 @@ void ProcesadorImagen::procesarImagenConDeteccionDeRostrosSinOpenMP(Archivo_jpeg
     // Guardar la imagen modificada utilizando Archivo_jpeg
     archivo.actualizarDatosImagen(datosModificados);
     archivo.guardarImagen("_rostros_detectados");
+    std::cout << "Imagen con rectángulos guardada" << std::endl;
 
     // Extraer y guardar los rostros individuales
     for (size_t i = 0; i < rostros.size(); ++i) {
+        // Recortar el rostro de la imagen original
         cv::Mat rostroRecortado = imagenOriginal(rostros[i]);
-        std::string rostroPath = "_rostro_" + std::to_string(i) + "_sin_omp";
 
-        // Guardar cada rostro como un archivo individual utilizando Archivo_jpeg
-        Archivo_jpeg archivoRostro(rostroPath); // Creando un nuevo archivo para cada rostro
+        // Verificar si el rostro recortado tiene datos
+        if (rostroRecortado.empty()) {
+            std::cerr << "Rostro recortado vacío en la posición: " << i << std::endl;
+            continue; // Saltar si el rostro está vacío
+        }
+
+        // Crear un nuevo archivo para cada rostro
+        std::string rostroPath = "img_resultado/rostro_" + std::to_string(i) + ".jpg"; 
+        Archivo_jpeg archivoRostro(rostroPath); 
+        
+        // Obtener el tamaño de los datos del rostro recortado
         std::vector<unsigned char> datosRostro(rostroRecortado.data, rostroRecortado.data + (rostroRecortado.total() * rostroRecortado.elemSize()));
+        
+        // Actualizar dimensiones
+        archivoRostro.actualizarDimensiones(rostroRecortado.cols, rostroRecortado.rows, rostroRecortado.channels());
+        
+        // Actualizar los datos de imagen del rostro
         archivoRostro.actualizarDatosImagen(datosRostro);
-        archivoRostro.guardarImagen(rostroPath);
+        
+        // Guardar el rostro usando el método directo de OpenCV
+        cv::imwrite(rostroPath, rostroRecortado);
+        std::cout << "Rostro guardado: " << rostroPath << std::endl; // Confirmación de guardado
     }
 
     // Medir y mostrar el tiempo de procesamiento
@@ -354,7 +372,7 @@ void ProcesadorImagen::procesarImagenConDeteccionDeRostrosSinOpenMP(Archivo_jpeg
 void ProcesadorImagen::procesarImagenConDeteccionDeRostros(Archivo_jpeg& archivo) {
     auto inicio = std::chrono::high_resolution_clock::now();
     
-    std::cout << "  > Procesando detección de rostros en la imagen: " << archivo.obtenerNombreArchivo() << std::endl;
+    std::cout << "  > Procesando detección de rostros en la imagen (Con OpenMP): " << archivo.obtenerNombreArchivo() << std::endl;
 
     // Obtener los datos de la imagen
     const auto& datosOriginales = archivo.obtenerDatosImagen();
@@ -366,44 +384,70 @@ void ProcesadorImagen::procesarImagenConDeteccionDeRostros(Archivo_jpeg& archivo
     // Convertir la imagen a formato OpenCV para procesamiento
     cv::Mat imagenOriginal(alto, ancho, numComponentes == 3 ? CV_8UC3 : CV_8UC1, datosModificados.data());
 
+    // Convertir la imagen a escala de grises
+    cv::Mat imagenGris;
+    cv::cvtColor(imagenOriginal, imagenGris, cv::COLOR_BGR2GRAY);
+
     // Cargar el clasificador de rostros (Viola-Jones Haar Cascade)
-    cv::CascadeClassifier clasificadorRostros;
-    if (!clasificadorRostros.load("haarcascade_frontalface_default.xml")) {
+    cv::CascadeClassifier faceCascade;
+    if (!faceCascade.load("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")) {
         std::cerr << "Error al cargar el clasificador de rostros." << std::endl;
         return;
     }
 
     // Detectar rostros
     std::vector<cv::Rect> rostros;
-    clasificadorRostros.detectMultiScale(imagenOriginal, rostros, 1.1, 4, 0, cv::Size(30, 30));
+    faceCascade.detectMultiScale(imagenGris, rostros);
 
     // Dibujar rectángulos alrededor de los rostros detectados
     for (const auto& rostro : rostros) {
-        cv::rectangle(imagenOriginal, rostro, cv::Scalar(0, 255, 0), 2); // Color verde
+        cv::rectangle(imagenOriginal, rostro, cv::Scalar(0, 255, 0), 2);
     }
 
     // Guardar la imagen modificada utilizando Archivo_jpeg
-    std::vector<unsigned char> datosImagenModificada(imagenOriginal.data, imagenOriginal.data + (imagenOriginal.total() * imagenOriginal.elemSize()));
-    archivo.actualizarDatosImagen(datosImagenModificada);
+    archivo.actualizarDatosImagen(datosModificados);
     archivo.guardarImagen("_rostros_detectados");
+    std::cout << "Imagen con rectángulos guardada" << std::endl;
 
-    // Extraer y guardar los rostros individuales
+    // Extraer y guardar los rostros individuales usando OpenMP
+    #pragma omp parallel for
     for (size_t i = 0; i < rostros.size(); ++i) {
+        // Recortar el rostro de la imagen original
         cv::Mat rostroRecortado = imagenOriginal(rostros[i]);
-        std::string rostroPath = "./img_resultado/rostro_" + std::to_string(i) + ".jpg";
 
-        // Guardar cada rostro como un archivo individual utilizando Archivo_jpeg
+        // Verificar si el rostro recortado tiene datos
+        if (rostroRecortado.empty()) {
+            #pragma omp critical
+            std::cerr << "Rostro recortado vacío en la posición: " << i << std::endl;
+            continue; // Saltar si el rostro está vacío
+        }
+
+        // Crear un nuevo archivo para cada rostro
+        std::string rostroPath = "img_resultado/rostro__" + std::to_string(i) + "_omp.jpg"; 
+        Archivo_jpeg archivoRostro(rostroPath); 
+        
+        // Obtener el tamaño de los datos del rostro recortado
         std::vector<unsigned char> datosRostro(rostroRecortado.data, rostroRecortado.data + (rostroRecortado.total() * rostroRecortado.elemSize()));
-        Archivo_jpeg archivoRostro(rostroPath); // Creando un nuevo archivo para cada rostro
+        
+        // Actualizar dimensiones
+        archivoRostro.actualizarDimensiones(rostroRecortado.cols, rostroRecortado.rows, rostroRecortado.channels());
+        
+        // Actualizar los datos de imagen del rostro
         archivoRostro.actualizarDatosImagen(datosRostro);
         
-        if (!archivoRostro.guardarImagen("")) {
+        // Guardar el rostro usando el método directo de OpenCV
+        if (!cv::imwrite(rostroPath, rostroRecortado)) {
+            #pragma omp critical
             std::cerr << "Error al guardar el rostro: " << rostroPath << std::endl;
+        } else {
+            #pragma omp critical
+            std::cout << "Rostro guardado: " << rostroPath << std::endl; // Confirmación de guardado
         }
     }
 
     // Medir y mostrar el tiempo de procesamiento
     auto fin = std::chrono::high_resolution_clock::now();
     double tiempo = std::chrono::duration<double, std::milli>(fin - inicio).count();
+    guardarTiempoProcesamiento("procesarImagenConDeteccionDeRostros", tiempo);
     std::cout << "   ...Tiempo de procesamiento (procesarImagenConDeteccionDeRostros): " << tiempo << " ms" << std::endl;
 }
