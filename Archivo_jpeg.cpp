@@ -2,10 +2,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <stdexcept>
 #include <iomanip>
 
-Archivo_jpeg::Archivo_jpeg(const std::string& nombre) : nombreArchivo(nombre), ancho(0), alto(0), numComponentes(0) {}
+Archivo_jpeg::Archivo_jpeg(const std::string& nombre)
+    : nombreArchivo(nombre), ancho(0), alto(0), numComponentes(0) {}
 
 Archivo_jpeg::Archivo_jpeg(const Archivo_jpeg& otro)
     : nombreArchivo(otro.nombreArchivo),
@@ -109,6 +109,15 @@ void Archivo_jpeg::actualizarDatosImagen(const std::vector<unsigned char>& nuevo
         throw std::invalid_argument("El tamaño de los nuevos datos no coincide con el tamaño original de la imagen");
     }
     datosImagen = nuevosDatos;
+}
+
+void Archivo_jpeg::actualizarDimensiones(int nuevoAncho, int nuevoAlto, int nuevosComponentes) {
+    ancho = nuevoAncho;
+    alto = nuevoAlto;
+    numComponentes = nuevosComponentes;
+
+    // Ajustar el tamaño del vector de datos de imagen si es necesario
+    datosImagen.resize(ancho * alto * numComponentes);
 }
 
 std::string Archivo_jpeg::verDatosCabecera() const {
