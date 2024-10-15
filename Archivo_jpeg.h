@@ -25,6 +25,7 @@ public:
     bool guardarImagen(const std::string& postfijo);
     const std::vector<unsigned char>& obtenerDatosImagen() const;
     void actualizarDatosImagen(const std::vector<unsigned char>& nuevosDatos);
+    void actualizarDimensiones(int nuevoAncho, int nuevoAlto, int nuevosComponentes);
     int obtenerAncho() const { return ancho; }
     int obtenerAlto() const { return alto; }
     int obtenerNumComponentes() const { return numComponentes; }
